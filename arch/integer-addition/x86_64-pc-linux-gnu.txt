@@ -1,112 +1,39 @@
-	.text
-	.file	"<string>"
-	.globl	add_int8_t
-	.p2align	4, 0x90
-	.type	add_int8_t,@function
 add_int8_t:
-	.cfi_startproc
 	leal	(%rdi,%rsi), %eax
 	retq
-.Lfunc_end0:
-	.size	add_int8_t, .Lfunc_end0-add_int8_t
-	.cfi_endproc
 
-	.section	".note.GNU-stack","",@progbits
-	.text
-	.file	"<string>"
-	.globl	add_uint8_t
-	.p2align	4, 0x90
-	.type	add_uint8_t,@function
 add_uint8_t:
-	.cfi_startproc
 	leal	(%rdi,%rsi), %eax
 	retq
-.Lfunc_end0:
-	.size	add_uint8_t, .Lfunc_end0-add_uint8_t
-	.cfi_endproc
 
-	.section	".note.GNU-stack","",@progbits
-	.text
-	.file	"<string>"
-	.globl	add_int16_t
-	.p2align	4, 0x90
-	.type	add_int16_t,@function
 add_int16_t:
-	.cfi_startproc
 	leal	(%rdi,%rsi), %eax
 	retq
-.Lfunc_end0:
-	.size	add_int16_t, .Lfunc_end0-add_int16_t
-	.cfi_endproc
 
-	.section	".note.GNU-stack","",@progbits
-	.text
-	.file	"<string>"
-	.globl	add_uint16_t
-	.p2align	4, 0x90
-	.type	add_uint16_t,@function
 add_uint16_t:
-	.cfi_startproc
 	leal	(%rdi,%rsi), %eax
 	retq
-.Lfunc_end0:
-	.size	add_uint16_t, .Lfunc_end0-add_uint16_t
-	.cfi_endproc
 
-	.section	".note.GNU-stack","",@progbits
-	.text
-	.file	"<string>"
-	.globl	add_int32_t
-	.p2align	4, 0x90
-	.type	add_int32_t,@function
 add_int32_t:
-	.cfi_startproc
 	leal	(%rdi,%rsi), %eax
 	retq
-.Lfunc_end0:
-	.size	add_int32_t, .Lfunc_end0-add_int32_t
-	.cfi_endproc
 
-	.section	".note.GNU-stack","",@progbits
-	.text
-	.file	"<string>"
-	.globl	add_uint32_t
-	.p2align	4, 0x90
-	.type	add_uint32_t,@function
 add_uint32_t:
-	.cfi_startproc
 	leal	(%rdi,%rsi), %eax
 	retq
-.Lfunc_end0:
-	.size	add_uint32_t, .Lfunc_end0-add_uint32_t
-	.cfi_endproc
 
-	.section	".note.GNU-stack","",@progbits
-	.text
-	.file	"<string>"
-	.globl	add_int64_t
-	.p2align	4, 0x90
-	.type	add_int64_t,@function
 add_int64_t:
-	.cfi_startproc
 	leaq	(%rdi,%rsi), %rax
 	retq
-.Lfunc_end0:
-	.size	add_int64_t, .Lfunc_end0-add_int64_t
-	.cfi_endproc
 
-	.section	".note.GNU-stack","",@progbits
-	.text
-	.file	"<string>"
-	.globl	add_uint64_t
-	.p2align	4, 0x90
-	.type	add_uint64_t,@function
 add_uint64_t:
-	.cfi_startproc
 	leaq	(%rdi,%rsi), %rax
 	retq
-.Lfunc_end0:
-	.size	add_uint64_t, .Lfunc_end0-add_uint64_t
-	.cfi_endproc
 
-	.section	".note.GNU-stack","",@progbits
+add_int128_t:
+	movq	%rdi, %rax
+	addq	%rdx, %rax
+	adcq	%rcx, %rsi
+	movq	%rsi, %rdx
+	retq
+

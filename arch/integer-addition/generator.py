@@ -18,6 +18,7 @@ U8  = IntType( 'uint8_t', ir.IntType(8))
 U16 = IntType('uint16_t', ir.IntType(16))
 U32 = IntType('uint32_t', ir.IntType(32))
 U64 = IntType('uint64_t', ir.IntType(64))
+I128 = IntType('int128_t', ir.IntType(128))
 
 
 def generate_add_function(itype: IntType) -> ir.module.Module:
@@ -37,6 +38,14 @@ def generate_add_function(itype: IntType) -> ir.module.Module:
 
     return module
 
+def filter_asm(asm: str) -> str:
+    return '\n'.join(
+        filter(
+            lambda l: not l.strip().startswith('.'),
+            asm.splitlines()
+        )
+    )
+
 
 TARGET_TRIPLES = [
     "x86_64-pc-linux-gnu",
@@ -44,7 +53,7 @@ TARGET_TRIPLES = [
     "aarch64-unknown-linux-gnu"
 ]
 
-INTEGER_TYPES = [I8, U8, I16, U16, I32, U32, I64, U64]
+INTEGER_TYPES = [I8, U8, I16, U16, I32, U32, I64, U64, I128]
 
 
 if __name__ == '__main__':
@@ -63,5 +72,7 @@ if __name__ == '__main__':
                 binding_module = llvm.parse_assembly(module_ir)
 
                 asm = target_machine.emit_assembly(binding_module)
-                file.write(asm)
+                asm_small = filter_asm(asm)
+                file.write(asm_small)
+                file.write('\n')
 

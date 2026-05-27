@@ -1,226 +1,47 @@
-	.text
-	.syntax unified
-	.eabi_attribute	67, "2.09"
-	.eabi_attribute	6, 1
-	.eabi_attribute	8, 1
-	.eabi_attribute	34, 1
-	.eabi_attribute	17, 1
-	.eabi_attribute	20, 1
-	.eabi_attribute	21, 0
-	.eabi_attribute	23, 3
-	.eabi_attribute	24, 1
-	.eabi_attribute	25, 1
-	.eabi_attribute	38, 1
-	.eabi_attribute	14, 0
-	.file	"<string>"
-	.globl	add_int8_t
-	.p2align	2
-	.type	add_int8_t,%function
-	.code	32
 add_int8_t:
-	.fnstart
 	add	r0, r0, r1
 	mov	pc, lr
-.Lfunc_end0:
-	.size	add_int8_t, .Lfunc_end0-add_int8_t
-	.fnend
 
-	.section	".note.GNU-stack","",%progbits
-	.text
-	.syntax unified
-	.eabi_attribute	67, "2.09"
-	.eabi_attribute	6, 1
-	.eabi_attribute	8, 1
-	.eabi_attribute	34, 1
-	.eabi_attribute	17, 1
-	.eabi_attribute	20, 1
-	.eabi_attribute	21, 0
-	.eabi_attribute	23, 3
-	.eabi_attribute	24, 1
-	.eabi_attribute	25, 1
-	.eabi_attribute	38, 1
-	.eabi_attribute	14, 0
-	.file	"<string>"
-	.globl	add_uint8_t
-	.p2align	2
-	.type	add_uint8_t,%function
-	.code	32
 add_uint8_t:
-	.fnstart
 	add	r0, r0, r1
 	mov	pc, lr
-.Lfunc_end0:
-	.size	add_uint8_t, .Lfunc_end0-add_uint8_t
-	.fnend
 
-	.section	".note.GNU-stack","",%progbits
-	.text
-	.syntax unified
-	.eabi_attribute	67, "2.09"
-	.eabi_attribute	6, 1
-	.eabi_attribute	8, 1
-	.eabi_attribute	34, 1
-	.eabi_attribute	17, 1
-	.eabi_attribute	20, 1
-	.eabi_attribute	21, 0
-	.eabi_attribute	23, 3
-	.eabi_attribute	24, 1
-	.eabi_attribute	25, 1
-	.eabi_attribute	38, 1
-	.eabi_attribute	14, 0
-	.file	"<string>"
-	.globl	add_int16_t
-	.p2align	2
-	.type	add_int16_t,%function
-	.code	32
 add_int16_t:
-	.fnstart
 	add	r0, r0, r1
 	mov	pc, lr
-.Lfunc_end0:
-	.size	add_int16_t, .Lfunc_end0-add_int16_t
-	.fnend
 
-	.section	".note.GNU-stack","",%progbits
-	.text
-	.syntax unified
-	.eabi_attribute	67, "2.09"
-	.eabi_attribute	6, 1
-	.eabi_attribute	8, 1
-	.eabi_attribute	34, 1
-	.eabi_attribute	17, 1
-	.eabi_attribute	20, 1
-	.eabi_attribute	21, 0
-	.eabi_attribute	23, 3
-	.eabi_attribute	24, 1
-	.eabi_attribute	25, 1
-	.eabi_attribute	38, 1
-	.eabi_attribute	14, 0
-	.file	"<string>"
-	.globl	add_uint16_t
-	.p2align	2
-	.type	add_uint16_t,%function
-	.code	32
 add_uint16_t:
-	.fnstart
 	add	r0, r0, r1
 	mov	pc, lr
-.Lfunc_end0:
-	.size	add_uint16_t, .Lfunc_end0-add_uint16_t
-	.fnend
 
-	.section	".note.GNU-stack","",%progbits
-	.text
-	.syntax unified
-	.eabi_attribute	67, "2.09"
-	.eabi_attribute	6, 1
-	.eabi_attribute	8, 1
-	.eabi_attribute	34, 1
-	.eabi_attribute	17, 1
-	.eabi_attribute	20, 1
-	.eabi_attribute	21, 0
-	.eabi_attribute	23, 3
-	.eabi_attribute	24, 1
-	.eabi_attribute	25, 1
-	.eabi_attribute	38, 1
-	.eabi_attribute	14, 0
-	.file	"<string>"
-	.globl	add_int32_t
-	.p2align	2
-	.type	add_int32_t,%function
-	.code	32
 add_int32_t:
-	.fnstart
 	add	r0, r0, r1
 	mov	pc, lr
-.Lfunc_end0:
-	.size	add_int32_t, .Lfunc_end0-add_int32_t
-	.fnend
 
-	.section	".note.GNU-stack","",%progbits
-	.text
-	.syntax unified
-	.eabi_attribute	67, "2.09"
-	.eabi_attribute	6, 1
-	.eabi_attribute	8, 1
-	.eabi_attribute	34, 1
-	.eabi_attribute	17, 1
-	.eabi_attribute	20, 1
-	.eabi_attribute	21, 0
-	.eabi_attribute	23, 3
-	.eabi_attribute	24, 1
-	.eabi_attribute	25, 1
-	.eabi_attribute	38, 1
-	.eabi_attribute	14, 0
-	.file	"<string>"
-	.globl	add_uint32_t
-	.p2align	2
-	.type	add_uint32_t,%function
-	.code	32
 add_uint32_t:
-	.fnstart
 	add	r0, r0, r1
 	mov	pc, lr
-.Lfunc_end0:
-	.size	add_uint32_t, .Lfunc_end0-add_uint32_t
-	.fnend
 
-	.section	".note.GNU-stack","",%progbits
-	.text
-	.syntax unified
-	.eabi_attribute	67, "2.09"
-	.eabi_attribute	6, 1
-	.eabi_attribute	8, 1
-	.eabi_attribute	34, 1
-	.eabi_attribute	17, 1
-	.eabi_attribute	20, 1
-	.eabi_attribute	21, 0
-	.eabi_attribute	23, 3
-	.eabi_attribute	24, 1
-	.eabi_attribute	25, 1
-	.eabi_attribute	38, 1
-	.eabi_attribute	14, 0
-	.file	"<string>"
-	.globl	add_int64_t
-	.p2align	2
-	.type	add_int64_t,%function
-	.code	32
 add_int64_t:
-	.fnstart
 	adds	r0, r0, r2
 	adc	r1, r1, r3
 	mov	pc, lr
-.Lfunc_end0:
-	.size	add_int64_t, .Lfunc_end0-add_int64_t
-	.fnend
 
-	.section	".note.GNU-stack","",%progbits
-	.text
-	.syntax unified
-	.eabi_attribute	67, "2.09"
-	.eabi_attribute	6, 1
-	.eabi_attribute	8, 1
-	.eabi_attribute	34, 1
-	.eabi_attribute	17, 1
-	.eabi_attribute	20, 1
-	.eabi_attribute	21, 0
-	.eabi_attribute	23, 3
-	.eabi_attribute	24, 1
-	.eabi_attribute	25, 1
-	.eabi_attribute	38, 1
-	.eabi_attribute	14, 0
-	.file	"<string>"
-	.globl	add_uint64_t
-	.p2align	2
-	.type	add_uint64_t,%function
-	.code	32
 add_uint64_t:
-	.fnstart
 	adds	r0, r0, r2
 	adc	r1, r1, r3
 	mov	pc, lr
-.Lfunc_end0:
-	.size	add_uint64_t, .Lfunc_end0-add_uint64_t
-	.fnend
 
-	.section	".note.GNU-stack","",%progbits
+add_int128_t:
+	push	{r4, r5, r11, lr}
+	ldr	r5, [sp, #16]
+	ldr	r4, [sp, #20]
+	adds	r0, r0, r5
+	ldr	lr, [sp, #24]
+	adcs	r1, r1, r4
+	ldr	r12, [sp, #28]
+	adcs	r2, r2, lr
+	adc	r3, r3, r12
+	pop	{r4, r5, r11, lr}
+	mov	pc, lr
+
