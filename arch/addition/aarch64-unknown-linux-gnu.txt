@@ -1,3 +1,5 @@
+; aarch64-unknown-linux-gnu  
+
 add_int8_t:
 	add	w0, w0, w1
 	ret

@@ -64,11 +64,35 @@ def filter_asm(asm: str) -> str:
     )
 
 
-TARGET_TRIPLES = [
+def get_targets_data(triples: list[str]) -> dict[str, tuple[str,str]]:
+    """
+    To be called after having initialized all targets with
+        `llvm.initialize_all_targets()`
+
+    For the native target, we can be a little more specific with the flags
+    """
+    target_data = {
+        triple: ('', '')
+        for triple in triples
+    }
+
+    native_target = llvm.get_default_triple()
+    native_features = llvm.get_host_cpu_features()
+
+    target_data[native_target] = (
+        llvm.get_host_cpu_name(),
+        native_features.flatten()
+    )
+
+    return target_data
+
+
+TRIPLES = [
     "x86_64-pc-linux-gnu",
     "arm-linux-gnueabihf",
     "aarch64-unknown-linux-gnu"
 ]
+
 
 NUMERIC_TYPES = [I8, U8, I16, U16, I32, U32, I64, U64, I128, F16, F32, F64]
 
@@ -77,12 +101,21 @@ if __name__ == '__main__':
     llvm.initialize_all_targets()
     llvm.initialize_all_asmprinters()
 
-    for triple in TARGET_TRIPLES:
+    for triple, (cpu, features) in get_targets_data(TRIPLES).items():
         target = llvm.Target.from_triple(triple)
-        target_machine = target.create_target_machine()
+
+        # I suspect some optimizations are done at target level,
+        # so at a lower level than LLVM IR, possibly at MachineIR
+        target_machine = target.create_target_machine(
+            cpu=cpu,
+            features=features,
+            opt=3
+        )
 
         output_filename = f'{triple}.txt'
         with open(output_filename, 'w') as file:
+            file.write(f'; {triple} {cpu} {features}\n\n')
+
             for itype in NUMERIC_TYPES:
                 module = generate_add_function(itype)
                 module_ir = str(module)
