@@ -45,3 +45,32 @@ add_int128_t:
 	pop	{r4, r5, r11, lr}
 	mov	pc, lr
 
+add_float16:
+	push	{r4, r5, r6, lr}
+	mov	r6, #255
+	mov	r4, r1
+	orr	r6, r6, #65280
+	and	r0, r0, r6
+	bl	__gnu_h2f_ieee
+	mov	r5, r0
+	and	r0, r4, r6
+	bl	__gnu_h2f_ieee
+	mov	r1, r0
+	mov	r0, r5
+	bl	__addsf3
+	bl	__gnu_f2h_ieee
+	pop	{r4, r5, r6, lr}
+	mov	pc, lr
+
+add_float32:
+	push	{r11, lr}
+	bl	__addsf3
+	pop	{r11, lr}
+	mov	pc, lr
+
+add_float64:
+	push	{r11, lr}
+	bl	__adddf3
+	pop	{r11, lr}
+	mov	pc, lr
+

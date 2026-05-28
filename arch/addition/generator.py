@@ -5,24 +5,27 @@ import llvmlite.binding as llvm
 
 
 @dataclass(frozen=True)
-class IntType:
+class DType:
     typename: str
-    llvm_type: ir.types.IntType
+    llvm_type: object
 
 
-I8  = IntType(  'int8_t', ir.IntType(8))
-I16 = IntType( 'int16_t', ir.IntType(16))
-I32 = IntType( 'int32_t', ir.IntType(32))
-I64 = IntType( 'int64_t', ir.IntType(64))
-U8  = IntType( 'uint8_t', ir.IntType(8))
-U16 = IntType('uint16_t', ir.IntType(16))
-U32 = IntType('uint32_t', ir.IntType(32))
-U64 = IntType('uint64_t', ir.IntType(64))
-I128 = IntType('int128_t', ir.IntType(128))
+I8   = DType(  'int8_t', ir.IntType(8))
+I16  = DType( 'int16_t', ir.IntType(16))
+I32  = DType( 'int32_t', ir.IntType(32))
+I64  = DType( 'int64_t', ir.IntType(64))
+U8   = DType( 'uint8_t', ir.IntType(8))
+U16  = DType('uint16_t', ir.IntType(16))
+U32  = DType('uint32_t', ir.IntType(32))
+U64  = DType('uint64_t', ir.IntType(64))
+I128 = DType('int128_t', ir.IntType(128))
+F16  = DType( 'float16', ir.HalfType())
+F32  = DType( 'float32', ir.FloatType())
+F64  = DType( 'float64', ir.DoubleType())
 
 
-def generate_add_function(itype: IntType) -> ir.module.Module:
-    llvm_type = itype.llvm_type
+def generate_add_function(dtype: DType) -> ir.module.Module:
+    llvm_type = dtype.llvm_type
 
     function_type = ir.FunctionType(llvm_type, (llvm_type, llvm_type))
     function_name = f'add_{itype.typename}'
@@ -33,10 +36,24 @@ def generate_add_function(itype: IntType) -> ir.module.Module:
     block = func.append_basic_block(name="entry")
     builder = ir.IRBuilder(block)
     a, b = func.args
-    result = builder.add(a, b)
+
+    match type(llvm_type):
+        case ir.types.IntType:
+            add_func = builder.add
+        case ir.types.HalfType:
+            add_func = builder.fadd
+        case ir.types.FloatType:
+            add_func = builder.fadd
+        case ir.types.DoubleType:
+            add_func = builder.fadd
+        case _:
+            assert(False)
+
+    result = add_func(a, b)
     builder.ret(result)
 
     return module
+
 
 def filter_asm(asm: str) -> str:
     return '\n'.join(
@@ -53,7 +70,7 @@ TARGET_TRIPLES = [
     "aarch64-unknown-linux-gnu"
 ]
 
-INTEGER_TYPES = [I8, U8, I16, U16, I32, U32, I64, U64, I128]
+NUMERIC_TYPES = [I8, U8, I16, U16, I32, U32, I64, U64, I128, F16, F32, F64]
 
 
 if __name__ == '__main__':
@@ -66,7 +83,7 @@ if __name__ == '__main__':
 
         output_filename = f'{triple}.txt'
         with open(output_filename, 'w') as file:
-            for itype in INTEGER_TYPES:
+            for itype in NUMERIC_TYPES:
                 module = generate_add_function(itype)
                 module_ir = str(module)
                 binding_module = llvm.parse_assembly(module_ir)
