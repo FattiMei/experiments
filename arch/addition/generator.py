@@ -16,13 +16,12 @@ F32  = ( 'float32', ir.FloatType())
 F64  = ( 'float64', ir.DoubleType())
 
 
-def generate_add_function(name: str, dtype) -> ir.module.Module:
-    function_type = ir.FunctionType(dtype, (dtype, dtype))
-    function_name = f'add_{name}'
-
-    module = ir.Module()
-
-    func = ir.Function(module, function_type, name=function_name)
+def generate_add_function(module: ir.module.Module, name: str, dtype):
+    func = ir.Function(
+        module,
+        ftype=ir.FunctionType(dtype, (dtype, dtype)),
+        name=f'add_{name}'
+    )
     block = func.append_basic_block(name="entry")
     builder = ir.IRBuilder(block)
     a, b = func.args
@@ -30,19 +29,13 @@ def generate_add_function(name: str, dtype) -> ir.module.Module:
     match type(dtype):
         case ir.types.IntType:
             add_func = builder.add
-        case ir.types.HalfType:
-            add_func = builder.fadd
-        case ir.types.FloatType:
-            add_func = builder.fadd
-        case ir.types.DoubleType:
+        case ir.types.HalfType | ir.types.FloatType | ir.types.DoubleType:
             add_func = builder.fadd
         case _:
-            assert(False)
+            raise TypeError(f'Unsupported addition between {dtype}')
 
     result = add_func(a, b)
     builder.ret(result)
-
-    return module
 
 
 def filter_asm(asm: str) -> str:
@@ -61,10 +54,14 @@ def get_targets_data(triples: list[str]) -> dict[str, tuple[str,str]]:
 
     For the native target, we can be a little more specific with the flags
     """
-    target_data = {
-        triple: ('', '')
-        for triple in triples
-    }
+    target_data = {}
+
+    for triple in triples:
+        try:
+            target = llvm.Target.from_triple(triple)
+            target_data[triple] = ('generic', '')
+        except RuntimeError:
+            print(f'Skipping {triple} triple...')
 
     native_target = llvm.get_default_triple()
     native_features = llvm.get_host_cpu_features()
@@ -102,17 +99,17 @@ if __name__ == '__main__':
             opt=3
         )
 
+        module = ir.Module()
+        for t in NUMERIC_TYPES:
+            generate_add_function(module, *t)
+
+        binding_module = llvm.parse_assembly(str(module))
+        asm = target_machine.emit_assembly(binding_module)
+        asm_filtered = filter_asm(asm)
+
         output_filename = f'{triple}.txt'
         with open(output_filename, 'w') as file:
             file.write(f'; {triple} {cpu} {features}\n\n')
-
-            for t in NUMERIC_TYPES:
-                module = generate_add_function(*t)
-                module_ir = str(module)
-                binding_module = llvm.parse_assembly(module_ir)
-
-                asm = target_machine.emit_assembly(binding_module)
-                asm_small = filter_asm(asm)
-                file.write(asm_small)
-                file.write('\n')
+            file.write(asm_filtered)
+            file.write('\n')
 
