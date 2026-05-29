@@ -1,34 +1,24 @@
-from dataclasses import dataclass
-
 import llvmlite.ir as ir
 import llvmlite.binding as llvm
 
 
-@dataclass(frozen=True)
-class DType:
-    typename: str
-    llvm_type: object
+I8   = (  'int8_t', ir.IntType(8))
+I16  = ( 'int16_t', ir.IntType(16))
+I32  = ( 'int32_t', ir.IntType(32))
+I64  = ( 'int64_t', ir.IntType(64))
+U8   = ( 'uint8_t', ir.IntType(8))
+U16  = ('uint16_t', ir.IntType(16))
+U32  = ('uint32_t', ir.IntType(32))
+U64  = ('uint64_t', ir.IntType(64))
+I128 = ('int128_t', ir.IntType(128))
+F16  = ( 'float16', ir.HalfType())
+F32  = ( 'float32', ir.FloatType())
+F64  = ( 'float64', ir.DoubleType())
 
 
-I8   = DType(  'int8_t', ir.IntType(8))
-I16  = DType( 'int16_t', ir.IntType(16))
-I32  = DType( 'int32_t', ir.IntType(32))
-I64  = DType( 'int64_t', ir.IntType(64))
-U8   = DType( 'uint8_t', ir.IntType(8))
-U16  = DType('uint16_t', ir.IntType(16))
-U32  = DType('uint32_t', ir.IntType(32))
-U64  = DType('uint64_t', ir.IntType(64))
-I128 = DType('int128_t', ir.IntType(128))
-F16  = DType( 'float16', ir.HalfType())
-F32  = DType( 'float32', ir.FloatType())
-F64  = DType( 'float64', ir.DoubleType())
-
-
-def generate_add_function(dtype: DType) -> ir.module.Module:
-    llvm_type = dtype.llvm_type
-
-    function_type = ir.FunctionType(llvm_type, (llvm_type, llvm_type))
-    function_name = f'add_{itype.typename}'
+def generate_add_function(name: str, dtype) -> ir.module.Module:
+    function_type = ir.FunctionType(dtype, (dtype, dtype))
+    function_name = f'add_{name}'
 
     module = ir.Module()
 
@@ -37,7 +27,7 @@ def generate_add_function(dtype: DType) -> ir.module.Module:
     builder = ir.IRBuilder(block)
     a, b = func.args
 
-    match type(llvm_type):
+    match type(dtype):
         case ir.types.IntType:
             add_func = builder.add
         case ir.types.HalfType:
@@ -116,8 +106,8 @@ if __name__ == '__main__':
         with open(output_filename, 'w') as file:
             file.write(f'; {triple} {cpu} {features}\n\n')
 
-            for itype in NUMERIC_TYPES:
-                module = generate_add_function(itype)
+            for t in NUMERIC_TYPES:
+                module = generate_add_function(*t)
                 module_ir = str(module)
                 binding_module = llvm.parse_assembly(module_ir)
 
