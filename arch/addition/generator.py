@@ -26,13 +26,12 @@ def generate_add_function(module: ir.module.Module, name: str, dtype):
     builder = ir.IRBuilder(block)
     a, b = func.args
 
-    match type(dtype):
-        case ir.types.IntType:
-            add_func = builder.add
-        case ir.types.HalfType | ir.types.FloatType | ir.types.DoubleType:
-            add_func = builder.fadd
-        case _:
-            raise TypeError(f'Unsupported addition between {dtype}')
+    if type(dtype) == ir.types.IntType:
+        add_func = builder.add
+    elif dtype in (ir.types.HalfType(), ir.types.FloatType(), ir.types.DoubleType()):
+        add_func = builder.fadd
+    else:
+        raise TypeError(f'Unsupported addition between {dtype}')
 
     result = add_func(a, b)
     builder.ret(result)
