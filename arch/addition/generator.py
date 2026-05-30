@@ -1,3 +1,4 @@
+import argparse
 import llvmlite.ir as ir
 import llvmlite.binding as llvm
 
@@ -17,6 +18,10 @@ F64  = ( 'float64', ir.DoubleType())
 
 
 def generate_add_function(module: ir.module.Module, name: str, dtype):
+    """
+    Appends to the module the implementation of a function of signature
+      (dtype, dtype) -> dtype
+    """
     func = ir.Function(
         module,
         ftype=ir.FunctionType(dtype, (dtype, dtype)),
@@ -46,33 +51,6 @@ def filter_asm(asm: str) -> str:
     )
 
 
-def get_targets_data(triples: list[str]) -> dict[str, tuple[str,str]]:
-    """
-    To be called after having initialized all targets with
-        `llvm.initialize_all_targets()`
-
-    For the native target, we can be a little more specific with the flags
-    """
-    target_data = {}
-
-    for triple in triples:
-        try:
-            target = llvm.Target.from_triple(triple)
-            target_data[triple] = ('generic', '')
-        except RuntimeError:
-            print(f'Skipping {triple} triple...')
-
-    native_target = llvm.get_default_triple()
-    native_features = llvm.get_host_cpu_features()
-
-    target_data[native_target] = (
-        llvm.get_host_cpu_name(),
-        native_features.flatten()
-    )
-
-    return target_data
-
-
 TRIPLES = [
     "x86_64-pc-linux-gnu",
     "arm-linux-gnueabihf",
@@ -84,31 +62,51 @@ NUMERIC_TYPES = [I8, U8, I16, U16, I32, U32, I64, U64, I128, F16, F32, F64]
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser("add_asm_gen")
+    parser.add_argument(
+        '--triple',
+        type=str,
+        help=f"for example {', '.join(TRIPLES)}"
+    )
+    args = parser.parse_args()
+
     llvm.initialize_all_targets()
     llvm.initialize_all_asmprinters()
 
-    for triple, (cpu, features) in get_targets_data(TRIPLES).items():
+    triple = args.triple
+    cpu = 'generic'
+    features = ''
+
+    if triple is None:
+        triple = llvm.get_default_triple()
+        cpu = llvm.get_host_cpu_name()
+        features = llvm.get_host_cpu_features().flatten()
+
+    # I suspect some optimizations are done at target level,
+    # so at a lower level than LLVM IR, possibly at MachineIR
+    try:
         target = llvm.Target.from_triple(triple)
+    except RuntimeError as e:
+        print(e)
+        exit(1)
 
-        # I suspect some optimizations are done at target level,
-        # so at a lower level than LLVM IR, possibly at MachineIR
-        target_machine = target.create_target_machine(
-            cpu=cpu,
-            features=features,
-            opt=3
-        )
+    target_machine = target.create_target_machine(
+        cpu=cpu,
+        features=features,
+        opt=3
+    )
 
-        module = ir.Module()
-        for t in NUMERIC_TYPES:
-            generate_add_function(module, *t)
+    module = ir.Module()
+    for t in NUMERIC_TYPES:
+        generate_add_function(module, *t)
 
-        binding_module = llvm.parse_assembly(str(module))
-        asm = target_machine.emit_assembly(binding_module)
-        asm_filtered = filter_asm(asm)
+    binding_module = llvm.parse_assembly(str(module))
+    asm = target_machine.emit_assembly(binding_module)
+    asm_filtered = filter_asm(asm)
 
-        output_filename = f'{triple}.txt'
-        with open(output_filename, 'w') as file:
-            file.write(f'; {triple} {cpu} {features}\n\n')
-            file.write(asm_filtered)
-            file.write('\n')
+    output_filename = f'{triple}.txt'
+    with open(output_filename, 'w') as file:
+        file.write(f'; {triple} {cpu} {features}\n\n')
+        file.write(asm_filtered)
+        file.write('\n')
 
