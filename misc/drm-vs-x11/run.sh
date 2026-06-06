@@ -24,6 +24,7 @@ if [[ "$(tty)" == /dev/tty[0-9]* ]]; then
 	sudo xinit $GLMARK2_X11_FULL_PATH -- :0 > "$GLMARK2_XINIT_RESULTS"
 else
 	echo "drm and xinit experiments need to run in a VT, skipping them..."
+	echo "try to run sudo openvt -w $0..."
 fi
 
 if [[ -n "$DISPLAY" ]]; then
