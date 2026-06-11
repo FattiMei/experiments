@@ -1,6 +1,7 @@
 import cv2
 import sys
 import numpy as np
+import itertools
 from functools import partial
 
 
@@ -8,43 +9,42 @@ REFERENCE_FILENAME = 'reference.mp4'
 OUTPUT_FILENAME = 'cropped.mp4'
 
 
-def get_fourcc_code(cap) -> str:
-    """
-    I use this function so that I use the same encoding
-    as the input video
-    """
-    code = cap.get(cv2.CAP_PROP_FOURCC)
-
-    return int(code).to_bytes(4, byteorder=sys.byteorder).decode()
-
-
-def apply_pipeline(input_filename: str, output_filename: str, pipeline = extract_roi):
-    cap = cv2.VideoCapture(input_filename)
-    out = None
-    frames_written = 0
+def read_from_video(filename: str) -> list[np.ndarray]:
+    res = []
+    cap = cv2.VideoCapture(filename)
 
     while cap.isOpened():
         success, img = cap.read()
+
         if not success: break
-
-        frame = pipeline(img)
-        if out is None:
-            out = cv2.VideoWriter(
-                output_filename,
-                cv2.VideoWriter_fourcc(*get_fourcc_code(cap)),
-                cap.get(cv2.CAP_PROP_FPS),
-                (
-                    roi.shape[1], # the width of the image
-                    roi.shape[0]  # the height of the image (number of rows of ndarray)
-                )
-            )
-        else:
-            out.write(frame)
-            frames_written += 1
-
-    print(f'Total frames written: {frames_written}')
+        else: res.append(img)
 
     cap.release()
+    return res
+
+
+def write_to_video(frames, filename: str, fps: int = 30):
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+
+    reference = next(frames)
+    fwidth = reference.shape[1]
+    fheight = reference.shape[0]
+    out = cv2.VideoWriter(
+        filename,
+        fourcc,
+        fps,
+        (reference.shape[1], # the width of the frame
+         reference.shape[0]) # the height of the frame (the number of rows of ndarray)
+    )
+
+    frames_written = 0
+    for frame in itertools.chain([reference], frames):
+        assert(frame.shape == reference.shape)
+        out.write(frame)
+
+        frames_written += 1
+
+    print(f'Total frames written: {frames_written}')
     out.release()
 
 
@@ -70,9 +70,8 @@ def extract_points(img: np.ndarray, threshold: int) -> np.ndarray:
 
 
 if __name__ == '__main__':
-    apply_pipeline(
-        REFERENCE_FILENAME,
-        "points.mp4",
-        partial(extract_points, threshold=50)
-    )
+    frames = read_from_video(REFERENCE_FILENAME)
+
+    write_to_video(map(extract_roi, frames), 'roi.mp4')
+    write_to_video(map(partial(extract_points, threshold=50), frames), 'points.mp4')
 
