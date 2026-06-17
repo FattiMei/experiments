@@ -12,8 +12,9 @@ class Glmark2Results:
 
 
 gl_version_re = re.compile(r'^\s*GL_VERSION:\s+(.*)\s*$')
-glmark2_bench_re = re.compile(r'\[(\w+)].*: FPS: (\d+) FrameTime: (.*) ms')
+glmark2_bench_re = re.compile(r'(.*): FPS: (\d+) FrameTime: (.*) ms')
 glmark2_score_re = re.compile(r'^\s*glmark2 Score: (\d+)\s+$')
+bench_type_re = re.compile(r'[(\w+)]')
 
 
 def parse_glmark2_file(filename: str):
@@ -46,9 +47,10 @@ def parse_glmark2_file(filename: str):
     return Glmark2Results(gl_version, glmark2_score, benchmarks)
 
 
-def plot_results(results: Glmark2Results, ax, label: str):
-    y = list(results.benchmarks.values())
-    ax.plot(y, label=label)
+def extract_bench_type(bench_name: str) -> str:
+    bench_type_match = bench_type_re.match(bench_name)
+
+    return '' if bench_type_match is None else bench_type_match.group(1)
 
 
 if __name__ == '__main__':
@@ -73,10 +75,15 @@ if __name__ == '__main__':
         normalized_frame_times = reference / frame_times
         plt.plot(normalized_frame_times, label=label)
 
-    ticks = list(results.benchmarks.keys())
+    ticks = list(
+        map(
+            extract_bench_type,
+            results.benchmarks.keys()
+        )
+    )
 
     plt.title('Comparison of `glmark2` flavors')
-    plt.xticks(range(len(ticks)), ticks, rotation=60)
+    plt.xticks(range(len(ticks)), ticks, rotation=45)
     plt.ylabel('speedup')
     plt.legend()
     plt.show()
