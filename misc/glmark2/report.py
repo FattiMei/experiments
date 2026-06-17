@@ -1,75 +1,80 @@
 import re
-import argparse
-from tabulate import tabulate
+import numpy as np
 from dataclasses import dataclass
+import matplotlib.pyplot as plt
 
 
-@dataclass
-class TimedResult:
-    fps: int
-    frame_time: float
-
-
-@dataclass
+@dataclass(frozen=True)
 class Glmark2Results:
-    score: int
-    benchmarks: dict[str, TimedResult]
+    gl_version: str
+    glmark2_score: int
+    benchmarks: dict[str, float] # using only the frame time
 
 
-score_regex = re.compile(r'glmark2 Score: (\d)')
-bench_regex = re.compile(r'(\[.*): FPS: (\d+) FrameTime: (.*) ms')
+gl_version_re = re.compile(r'^\s*GL_VERSION:\s+(.*)\s*$')
+glmark2_bench_re = re.compile(r'\[(\w+)].*: FPS: (\d+) FrameTime: (.*) ms')
+glmark2_score_re = re.compile(r'^\s*glmark2 Score: (\d+)\s+$')
 
 
-def parse_results(contents: str) -> Glmark2Results:
-    score = None
+def parse_glmark2_file(filename: str):
     benchmarks = {}
 
+    with open(filename, 'r') as file:
+        contents = file.read()
+
     for line in contents.splitlines():
-        line = line.strip()
+        # we try every regex in our vocabulary
+        # I know this is wasteful
+        gl_version_match = gl_version_re.match(line)
+        if gl_version_match is not None:
+            gl_version = gl_version_match.group(1)
+            continue
 
-        score_result = score_regex.match(line)
-        if score_result is not None:
-            score = score_result.group(1)
+        glmark2_bench_match = glmark2_bench_re.match(line)
+        if glmark2_bench_match is not None:
+            bench_name = glmark2_bench_match.group(1)
+            fps = glmark2_bench_match.group(2)
+            frame_time = glmark2_bench_match.group(3)
+            benchmarks[bench_name] = float(frame_time)
+            continue
 
-        bench_result = bench_regex.match(line)
-        if bench_result is not None:
-            # if it matches, it's guaranteed that it's well formed
-            bench_name = bench_result.group(1)
-            fps        = bench_result.group(2)
-            frame_time = bench_result.group(3)
-            benchmarks[bench_name] = TimedResult(fps, frame_time)
+        glmark2_score_match = glmark2_score_re.match(line)
+        if glmark2_score_match is not None:
+            glmark2_score = glmark2_score_match.group(1)
+            continue
 
-    return Glmark2Results(score, benchmarks)
+    return Glmark2Results(gl_version, glmark2_score, benchmarks)
 
 
-def format_table(runs: list[Glmark2Results], use_fps: bool = False):
-    table = []
-    reference = runs[0]
-
-    extract_fps = lambda data, key: data[key].fps
-    extract_frame_time = lambda data, key: data[key].frame_time
-    extract_val = extract_fps if use_fps else extract_frame_time
-
-    for bench_name in reference.benchmarks.keys():
-        row = [bench_name] + [extract_val(run.benchmarks, bench_name) for run in runs]
-        table.append(row)
-
-    return table
+def plot_results(results: Glmark2Results, ax, label: str):
+    y = list(results.benchmarks.values())
+    ax.plot(y, label=label)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('glmark2_files', type=str, nargs='+')
-    parser.add_argument('-fps', action='store_true')
-    args = parser.parse_args()
+    result_files = {
+        'x11'    : 'glmark2-results.txt',
+        'x11-drm': 'glmark2-drm-results.txt',
+        'es2'    : 'glmark2-es2-results.txt',
+        'es2-drm': 'glmark2-es2-drm-results.txt'
+    }
 
-    runs = []
-    headers = ['benchmark name']
-    for filename in args.glmark2_files:
-        with open(filename, 'r') as file:
-            contents = file.read()
+    first = True
+    reference = None
 
-        runs.append(parse_results(contents))
-        headers.append(filename)
+    for label, filename in result_files.items():
+        results = parse_glmark2_file(filename)
+        frame_times = np.array(list(results.benchmarks.values()))
 
-    print(tabulate(format_table(runs, args.fps), headers=headers))
+        if first:
+            reference = frame_times
+            first = False
+
+        normalized_frame_times = reference / frame_times
+        plt.plot(normalized_frame_times, label=label)
+
+    plt.title('Comparison of `glmark2` flavors')
+    plt.ylabel('speedup')
+    plt.legend()
+    plt.show()
+
