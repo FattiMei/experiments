@@ -73,7 +73,10 @@ if __name__ == '__main__':
         normalized_frame_times = reference / frame_times
         plt.plot(normalized_frame_times, label=label)
 
+    ticks = list(results.benchmarks.keys())
+
     plt.title('Comparison of `glmark2` flavors')
+    plt.xticks(range(len(ticks)), ticks, rotation=60)
     plt.ylabel('speedup')
     plt.legend()
     plt.show()
