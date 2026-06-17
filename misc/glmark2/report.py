@@ -61,30 +61,26 @@ if __name__ == '__main__':
         'es2-drm': 'glmark2-es2-drm-results.txt'
     }
 
-    first = True
-    reference = None
-
+    frame_times = {}
     for label, filename in result_files.items():
         results = parse_glmark2_file(filename)
-        frame_times = np.array(list(results.benchmarks.values()))
+        t = np.array(list(results.benchmarks.values()))
+        frame_times[label] = t
 
-        if first:
-            reference = frame_times
-            first = False
-
-        normalized_frame_times = reference / frame_times
-        plt.plot(normalized_frame_times, label=label)
-
-    ticks = list(
-        map(
-            extract_bench_type,
-            results.benchmarks.keys()
-        )
-    )
+    # first plot on the speedup with respect to x11
+    reference = frame_times['x11']
+    for label, t in frame_times.items():
+        normalized_t = reference / t
+        plt.plot(normalized_t, label=label)
 
     plt.title('Comparison of `glmark2` flavors')
-    plt.xticks(range(len(ticks)), ticks, rotation=45)
     plt.ylabel('speedup')
     plt.legend()
     plt.show()
 
+    # second plot on comparison between es2.0 and 2.0
+    plt.title('ES 2.0 speedup over OpenGL 2.0')
+    plt.plot(frame_times['x11'] / frame_times['es2'], label='x11')
+    plt.plot(frame_times['x11-drm'] / frame_times['es2-drm'], label='drm')
+    plt.legend()
+    plt.show()
