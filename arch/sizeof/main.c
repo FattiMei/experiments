@@ -1,12 +1,14 @@
 #include <stdio.h>
-#include <stddef.h>
+#include <stddef.h> // for size_t, but this header may be included elsewhere
 #include <stdint.h>
+#include <stdbool.h>
 
 
 #define PRINT_SIZE(t) printf("%12s: %d\n", #t, sizeof(t))
 
 
 int main(void) {
+	PRINT_SIZE(bool);
 	PRINT_SIZE(char);
 	PRINT_SIZE(short);
 	PRINT_SIZE(int);
@@ -14,13 +16,9 @@ int main(void) {
 	PRINT_SIZE(long long);
 	PRINT_SIZE(size_t);
 
-	printf("\n");
-
 	PRINT_SIZE(float);
 	PRINT_SIZE(double);
 	PRINT_SIZE(long double);
-
-	printf("\n");
 
 	PRINT_SIZE(int8_t);
 	PRINT_SIZE(int16_t);
