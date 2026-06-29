@@ -82,6 +82,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('header', type=str, nargs='+')
     parser.add_argument('--recursive', action='store_true')
+    parser.add_argument('--format', type=str, default='png')
     args = parser.parse_args()
 
     headers = args.header
@@ -90,12 +91,19 @@ if __name__ == '__main__':
     edges = build_dependency_graph(headers, recursive)
     nodes = set(map(lambda e: e[0], edges))
 
-    dot = graphviz.Digraph()
+    dot = graphviz.Digraph(
+        format=args.format,
+        graph_attr={
+            'rankdir': 'TB',
+        }
+    )
+
     for node in nodes:
         dot.node(node, os.path.basename(node))
 
     for (h1, h2) in edges:
         dot.edge(h1, h2, '')
 
-    dot.render('graph', view=True)
+    dot = dot.unflatten(stagger=3)
+    dot.render('graph', view=False)
 
