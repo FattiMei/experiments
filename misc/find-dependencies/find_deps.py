@@ -101,7 +101,7 @@ def build_adjacency_matrix(labels: list[str], edges: list[tuple[int,int]]) -> np
 
 def populate_dot_graph(labels, edges, format: str = 'png'):
     dot = graphviz.Digraph(
-        format=args.format,
+        format=format,
         graph_attr={
             'rankdir': 'TB',
         }
