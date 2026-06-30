@@ -99,25 +99,7 @@ def build_adjacency_matrix(labels: list[str], edges: list[tuple[int,int]]) -> np
     return A
 
 
-def compute_transitive_closure(A: np.ndarray) -> np.ndarray:
-    A = np.copy(A)
-    return A
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('header', type=str, nargs='+')
-    parser.add_argument('--format', type=str, default='png')
-    parser.add_argument('--wasteful', action='store_true')
-
-    args = parser.parse_args()
-    headers = args.header
-
-    start_time = time.perf_counter()
-    labels, edges = build_dependency_graph(headers)
-    processing_time = time.perf_counter() - start_time
-
-    start_time = time.perf_counter()
+def populate_dot_graph(labels, edges, format: str = 'png'):
     dot = graphviz.Digraph(
         format=args.format,
         graph_attr={
@@ -132,9 +114,25 @@ if __name__ == '__main__':
         dot.edge(str(i), str(j), '')
 
     dot = dot.unflatten(stagger=3)
+    return dot
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('header', type=str, nargs='+')
+    parser.add_argument('--format', type=str, default='png')
+
+    args = parser.parse_args()
+    headers = args.header
+
+    start_time = time.perf_counter()
+    labels, edges = build_dependency_graph(headers)
+    processing_time = time.perf_counter() - start_time
+    print(f'Processing time: {processing_time:.2f} s')
+
+    start_time = time.perf_counter()
+    dot = populate_dot_graph(labels, edges, args.format)
     dot.render('graph', view=False)
     rendering_time = time.perf_counter() - start_time
-
-    print(f'Processing time: {processing_time:.2f} s')
     print(f'Rendering time: {rendering_time:.2f} s')
 
