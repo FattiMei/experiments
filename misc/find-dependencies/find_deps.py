@@ -1,7 +1,10 @@
 import os
+import time
 import argparse
 import graphviz
+import itertools
 import subprocess
+import numpy as np
 
 
 GCC_COMMAND = [
@@ -12,20 +15,20 @@ GCC_COMMAND = [
 ]
 
 
-def get_dependencies(header_filename: str) -> str:
-    is_abs_path = header_filename.startswith('/')
+def get_dependencies(header: str) -> list[str]:
+    is_abs_path = header.startswith('/')
 
     if is_abs_path:
-        src = f'#include "{header_filename}"'
+        src = f'#include "{header}"'
     else:
-        src = f'#include <{header_filename}>'
+        src = f'#include <{header}>'
 
     try:
         res = subprocess.run(
             GCC_COMMAND,
             input=src.encode(),
             capture_output=True,
-            check=True # this should never fail
+            check=True
         )
 
         dependency_file = res.stdout.decode()
@@ -35,62 +38,86 @@ def get_dependencies(header_filename: str) -> str:
         # TODO: one may want to log what is the source of errors
         pass
 
-    return ''
+    return []
 
 
-def get_header_path(header: str) -> str:
-    basename = os.path.basename(header)
-
-    for path in get_dependencies(header):
-        if os.path.basename(path) == basename:
-            return path
-
-    assert(False)
-    return None
+def get_header_abs_path(header: str) -> str:
+    return next(
+        filter(
+            lambda dep: dep.endswith(header),
+            get_dependencies(header)
+        )
+    )
 
 
-def build_dependency_graph(headers: list[str], recursive: bool = False) -> list[tuple[str, str]]:
+def build_dependency_graph(headers: list[str]) -> tuple[list[str], list[tuple[int,int]]]:
+    """
+    Returns the dependency graph (V,E) starting from a list of headers.
+    This graph is supposed to be closed under the transitive relation.
+    In simple terms if there exists a path from i to j, then (i,j) in E
+
+    The user can provide header names like "stdio.h" or "stdlib.h" or
+    complete header paths like "/usr/include/zstd.h".
+
+    This solution contains redundancies as every header in `headers` is
+    checked twice for dependencies. The alternative would have been
+    complicating the algorithm by adding more data structures and hidden
+    invariants
+    """
+    labels = {
+        get_header_abs_path(header): i
+        for (i, header) in enumerate(headers)
+    }
+    queue = list(labels.keys())
     edges = []
-    queue = headers.copy()
-    reached = set(queue)
 
     while len(queue) > 0:
         current = queue.pop()
-        dependencies = get_dependencies(current)
+        i = labels[current]
 
-        for dependency in dependencies:
-            # this to get the absolute path of the current header file
-            if dependency.endswith(current):
-                current = dependency
-                continue
+        for dep in get_dependencies(current):
+            if dep in labels:
+                j = labels[dep]
+            else:
+                j = len(labels)
+                labels[dep] = j
+                queue.append(dep)
 
-            if recursive and dependency not in reached:
-                reached.add(dependency)
-                queue.append(dependency)
+            if i != j:
+                edges.append((i,j))
 
-        # adding later the edges once we know the absolute path
-        # of the source node
-        for dependency in dependencies:
-            # we ignore the cases in which an header depends on itself
-            if dependency != current:
-                edges.append((current, dependency))
+    return list(labels.keys()), edges
 
-    return edges
+
+def build_adjacency_matrix(labels: list[str], edges: list[tuple[int,int]]) -> np.ndarray:
+    n = len(labels)
+    A = np.zeros((n,n), dtype=np.int32)
+
+    for (i,j) in edges:
+        A[i,j] = 1
+
+    return A
+
+
+def compute_transitive_closure(A: np.ndarray) -> np.ndarray:
+    A = np.copy(A)
+    return A
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('header', type=str, nargs='+')
-    parser.add_argument('--recursive', action='store_true')
     parser.add_argument('--format', type=str, default='png')
+    parser.add_argument('--wasteful', action='store_true')
+
     args = parser.parse_args()
-
     headers = args.header
-    recursive = args.recursive
 
-    edges = build_dependency_graph(headers, recursive)
-    nodes = set(map(lambda e: e[0], edges))
+    start_time = time.perf_counter()
+    labels, edges = build_dependency_graph(headers)
+    processing_time = time.perf_counter() - start_time
 
+    start_time = time.perf_counter()
     dot = graphviz.Digraph(
         format=args.format,
         graph_attr={
@@ -98,12 +125,16 @@ if __name__ == '__main__':
         }
     )
 
-    for node in nodes:
-        dot.node(node, os.path.basename(node))
+    for i, label in enumerate(labels):
+        dot.node(str(i), os.path.basename(label))
 
-    for (h1, h2) in edges:
-        dot.edge(h1, h2, '')
+    for (i,j) in edges:
+        dot.edge(str(i), str(j), '')
 
     dot = dot.unflatten(stagger=3)
     dot.render('graph', view=False)
+    rendering_time = time.perf_counter() - start_time
+
+    print(f'Processing time: {processing_time:.2f} s')
+    print(f'Rendering time: {rendering_time:.2f} s')
 
