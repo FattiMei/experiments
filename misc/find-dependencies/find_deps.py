@@ -7,15 +7,16 @@ import subprocess
 import numpy as np
 
 
-GCC_COMMAND = [
-    'gcc', 
-    '-x', 'c',        # treat input as C file
-    '-M', '-MF', '-', # dump dependency file to stdout
-    '-'               # take input from stdin
-]
+def gcc_command(language: str) -> str:
+    return [
+        'gcc', 
+        '-x', language,   # treat input as `language` file
+        '-M', '-MF', '-', # dump dependency file to stdout
+        '-'               # take input from stdin
+    ]
 
 
-def get_dependencies(header: str) -> list[str]:
+def get_dependencies(header: str, language: str) -> list[str]:
     is_abs_path = header.startswith('/')
 
     if is_abs_path:
@@ -25,7 +26,7 @@ def get_dependencies(header: str) -> list[str]:
 
     try:
         res = subprocess.run(
-            GCC_COMMAND,
+            gcc_command(language),
             input=src.encode(),
             capture_output=True,
             check=True
@@ -41,16 +42,16 @@ def get_dependencies(header: str) -> list[str]:
     return []
 
 
-def get_header_abs_path(header: str) -> str:
+def get_header_abs_path(header: str, language: str) -> str:
     return next(
         filter(
             lambda dep: dep.endswith(header),
-            get_dependencies(header)
+            get_dependencies(header, language)
         )
     )
 
 
-def build_dependency_graph(headers: list[str]) -> tuple[list[str], list[tuple[int,int]]]:
+def build_dependency_graph(headers: list[str], language: str = 'c') -> tuple[list[str], list[tuple[int,int]]]:
     """
     Returns the dependency graph (V,E) starting from a list of headers.
     This graph is supposed to be closed under the transitive relation.
@@ -65,7 +66,7 @@ def build_dependency_graph(headers: list[str]) -> tuple[list[str], list[tuple[in
     invariants
     """
     labels = {
-        get_header_abs_path(header): i
+        get_header_abs_path(header, language): i
         for (i, header) in enumerate(headers)
     }
     queue = list(labels.keys())
@@ -75,7 +76,7 @@ def build_dependency_graph(headers: list[str]) -> tuple[list[str], list[tuple[in
         current = queue.pop()
         i = labels[current]
 
-        for dep in get_dependencies(current):
+        for dep in get_dependencies(current, language):
             if dep in labels:
                 j = labels[dep]
             else:
@@ -97,6 +98,19 @@ def build_adjacency_matrix(labels: list[str], edges: list[tuple[int,int]]) -> np
         A[i,j] = 1
 
     return A
+
+
+def build_hasse_diagram(A: np.ndarray) -> np.ndarray:
+    H = A.copy()
+    n = A.shape[0]
+
+    for u in range(n):
+        for i in range(n):
+            for j in range(n):
+                if H[i,u] and H[u,j]:
+                    H[i,j] = 0
+
+    return H
 
 
 def populate_dot_graph(labels, edges, format: str = 'png'):
@@ -121,18 +135,29 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('header', type=str, nargs='+')
     parser.add_argument('--format', type=str, default='png')
+    parser.add_argument('--language', type=str, default='c')
+    parser.add_argument('--output', type=str, default='graph')
+    parser.add_argument('--hasse', action='store_true')
 
     args = parser.parse_args()
     headers = args.header
 
     start_time = time.perf_counter()
-    labels, edges = build_dependency_graph(headers)
+    labels, edges = build_dependency_graph(headers, args.language)
     processing_time = time.perf_counter() - start_time
-    print(f'Processing time: {processing_time:.2f} s')
+    print(f'Building the dependency graph: {processing_time:.2f} s')
+
+    if args.hasse:
+        start_time = time.perf_counter()
+        A = build_adjacency_matrix(labels, edges)
+        H = build_hasse_diagram(A)
+        edges = np.argwhere(H).tolist()
+        post_processing_time = time.perf_counter() - start_time
+        print(f'Computing the hasse diagram: {post_processing_time:.2f} s')
 
     start_time = time.perf_counter()
     dot = populate_dot_graph(labels, edges, args.format)
-    dot.render('graph', view=False)
+    dot.render(args.output, view=False)
     rendering_time = time.perf_counter() - start_time
     print(f'Rendering time: {rendering_time:.2f} s')
 
