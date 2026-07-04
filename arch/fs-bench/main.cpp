@@ -78,12 +78,13 @@ int main(int argc, char* argv[]) {
 			// if it has read something, it's considered a valid read
 			time_fread += time_fread_contrib;
 
-			const auto [time_sweep_contrib, _] = TIME_STMT(
+			const auto [time_sweep_contrib, checksum_contrib] = TIME_STMT(
 				compute_checksum(bytes_read, buf)
 			);
 
 			size_bytes += bytes_read;
 			time_sweep += time_sweep_contrib;
+			checksum ^= checksum_contrib;
 		} else {
 			break;
 		}
