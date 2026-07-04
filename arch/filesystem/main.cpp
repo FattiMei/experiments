@@ -1,6 +1,6 @@
 #include <chrono>
 #include <cstdio>
-#include <cassert>
+#include <iomanip>
 #include <iostream>
 
 
@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
 		requested_batch_size_kb > 0 ? (1024*requested_batch_size_kb) : get_file_size_bytes(fp)
 	};
 
-	auto [time_malloc, buf] = TIME_STMT(static_cast<char*>(std::malloc(batch_size)));
+	auto [time_malloc, buf] = TIME_STMT(new char[batch_size]);
 	if (buf == NULL) {
 		std::cerr << "Malloc of size " << batch_size << " failed\n";
 		return 1;
@@ -75,13 +75,11 @@ int main(int argc, char* argv[]) {
 		);
 
 		if (bytes_read > 0) {
-			assert(bytes_read <= batch_size);
-
 			// if it has read something, it's considered a valid read
 			time_fread += time_fread_contrib;
 
 			const auto [time_sweep_contrib, _] = TIME_STMT(
-				compute_checksum(bytes_read, buf + size_bytes)
+				compute_checksum(bytes_read, buf)
 			);
 
 			size_bytes += bytes_read;
@@ -91,7 +89,10 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
+	delete[] buf;
 	const int checksum_int { checksum };
+
+	std::cout << std::fixed << std::setprecision(9);
 
 	std::cout
 		<< "file_name,size_bytes,checksum,batch_size,time_malloc_s,time_fopen_s,time_fread_s,time_sweep_s\n"
