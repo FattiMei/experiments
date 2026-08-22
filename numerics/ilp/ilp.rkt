@@ -1,0 +1,32 @@
+(define (feasible? x y)
+  (and (< (* 2019 x) (* 2020 y))
+       (< (* 2021 y) (* 2020 x))))
+
+(define (solution-strict val mode)
+  (if (eq? mode 'horizontal)
+    (let* ((y val)
+           (x (quotient (+ (* 2021 y) 2020) 2020)))
+      (if (> (* 2020 y) (* 2019 x))
+        (cons x y)
+        (solution-strict x 'vertical)))
+
+    (let* ((x val)
+           (y (quotient (+ (* 2019 x) 2020) 2020)))
+      (if (< (* 2021 y) (* 2020 x))
+        (cons x y)
+        (solution-strict y 'horizontal)))))
+
+(define (solution val mode)
+  (if (eq? mode 'horizontal)
+    (let* ((y val)
+           (x (ceiling (/ (+ (* 2021 y) 1) 2020))))
+      (if (>= (- (* 2020 y) (* 2019 x)) 1)
+        (cons x y)
+        (solution x 'vertical)))
+
+    (let* ((x val)
+           (y (ceiling (/ (+ (* 2019 x) 1) 2020))))
+      (if (>= (- (* 2020 x) (* 2021 y)) 1)
+        (cons x y)
+        (solution y 'horizontal)))))
+
