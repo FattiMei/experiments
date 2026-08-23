@@ -32,10 +32,11 @@
 
 (for-each
   (lambda (impl)
-    (let-values (((result cpu-time real-time gc-time) (time-apply impl (list 1 'horizontal))))
-      (displayln impl)
-      (displayln result)
-      (display real-time)(displayln " ms"))
-      (displayln ""))
+    (let-values (((result cpu-time real-time gc-time)
+                  (time-apply impl (list 1 'horizontal))))
+      (displayln (object-name impl))
+      (display "(x,y) = ")(displayln result)
+      (display "solve time = ")(display real-time)(displayln " ms")
+      (displayln "")))
   (list solution-strict solution))
 
