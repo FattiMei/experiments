@@ -30,3 +30,12 @@
         (cons x y)
         (solution y 'horizontal)))))
 
+(for-each
+  (lambda (impl)
+    (let-values (((result cpu-time real-time gc-time) (time-apply impl (list 1 'horizontal))))
+      (displayln impl)
+      (displayln result)
+      (display real-time)(displayln " ms"))
+      (displayln ""))
+  (list solution-strict solution))
+
