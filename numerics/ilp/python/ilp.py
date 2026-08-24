@@ -19,5 +19,5 @@ end_time = perf_counter()
 solve_time = end_time - start_time
 
 print(f'x = {res.x}')
-print(f'solve time = {solve_time} s')
+print(f'{solve_time = } s')
 
