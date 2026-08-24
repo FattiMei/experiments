@@ -1,6 +1,6 @@
-import pulp
 import numpy as np
 from time import perf_counter
+from mip import Model, INTEGER, MINIMIZE
 from scipy.optimize import LinearConstraint, milp
 
 
@@ -24,22 +24,22 @@ def scipy_solution() -> tuple[float, np.array]:
     return solve_time, res.x
 
 
-def pulp_solution() -> tuple[float, np.array]:
-    prob = pulp.LpProblem("ILP problem", pulp.LpMinimize)
+def mip_solution() -> tuple[float, np.array]:
+    prob = Model(sense=MINIMIZE)
 
-    x = prob.add_variable("x", 0, None, pulp.LpInteger)
-    y = prob.add_variable("y", 0, None, pulp.LpInteger)
+    x = prob.add_var("x", lb=0, var_type=INTEGER)
+    y = prob.add_var("y", lb=0, var_type=INTEGER)
 
-    prob += x + y, "Objective function"
-    prob += 2019*x < 2020*y
-    prob += 2021*y < 2020*x
+    prob.objective = x + y
+    prob += (2019*x - 2020*y) <= -1
+    prob += (-2020*x + 2021*y) <= -1
 
     start_time = perf_counter()
-    prob.solve()
+    prob.optimize()
     end_time = perf_counter()
     solve_time = end_time - start_time
 
-    res = np.array([v.varValue for v in prob.variables()])
+    res = np.array([v.x for v in prob.vars])
 
     return solve_time, res
 
@@ -47,6 +47,6 @@ def pulp_solution() -> tuple[float, np.array]:
 solve_time, sol = scipy_solution()
 print(f"scipy: {sol = } in {solve_time} seconds")
 
-solve_time, sol = pulp_solution()
-print(f"pulp: {sol = } in {solve_time} seconds")
+solve_time, sol = mip_solution()
+print(f"mip: {sol = } in {solve_time} seconds")
 
