@@ -16,6 +16,12 @@
         (cons x y)
         (solution-strict y 'horizontal)))))
 
+; optimization on ceiling as a macro
+(define-syntax-rule (ceiling (/ x y))
+  (let ((num x)
+        (den y))
+    (quotient (+ num (- den 1)) den)))
+
 (define (solution val mode)
   (if (eq? mode 'horizontal)
     (let* ((y val)
@@ -34,7 +40,7 @@
   (lambda (impl)
     (let-values (((result cpu-time real-time gc-time)
                   (time-apply impl (list 1 'horizontal))))
-      (displayln (object-name impl))
+      (display "impl = ")(displayln (object-name impl))
       (display "(x,y) = ")(displayln result)
       (display "solve time = ")(display real-time)(displayln " ms")
       (displayln "")))
