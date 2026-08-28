@@ -16,22 +16,20 @@
         (cons x y)
         (solution-strict y 'horizontal)))))
 
-; optimization on ceiling as a macro
-(define-syntax-rule (ceiling (/ x y))
-  (let ((num x)
-        (den y))
-    (quotient (+ num (- den 1)) den)))
-
 (define (solution val mode)
+  ; optimization of the expression (ceiling (/ x y))
+  (define (ceiling/ x y)
+    (quotient (+ x (sub1 y)) y))
+
   (if (eq? mode 'horizontal)
     (let* ((y val)
-           (x (ceiling (/ (+ (* 2021 y) 1) 2020))))
+           (x (ceiling/ (+ (* 2021 y) 1) 2020)))
       (if (>= (- (* 2020 y) (* 2019 x)) 1)
         (cons x y)
         (solution x 'vertical)))
 
     (let* ((x val)
-           (y (ceiling (/ (+ (* 2019 x) 1) 2020))))
+           (y (ceiling/ (+ (* 2019 x) 1) 2020)))
       (if (>= (- (* 2020 x) (* 2021 y)) 1)
         (cons x y)
         (solution y 'horizontal)))))
