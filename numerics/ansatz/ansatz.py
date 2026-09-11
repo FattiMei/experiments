@@ -6,8 +6,8 @@ class LinearAnsatz():
         self.C = sym.Symbol('C')
         self.args = (self.C,)
 
-    def __call__(self, x, args: dict = {}):
-        C = args.get(self.C, self.C)
+    def __call__(self, x):
+        C = self.C
 
         return C * x
 
@@ -19,8 +19,7 @@ class AffineAnsatz():
         self.args = (self.C, self.D)
 
     def __call__(self, x, args: dict = {}):
-        C = args.get(self.C, self.C)
-        D = args.get(self.D, self.D)
+        C, D = self.C, self.D
 
         return C * x + D
 
@@ -33,9 +32,6 @@ def solve_ansatz(functional_equation, ansatz, x):
 
     if len(sol) == 0:
         return None
-
-    args_dict = sol[0]
-    assert(isinstance(args_dict, dict))
-
-    return ansatz(x, sol[0])
+    else:
+        return ansatz(x).subs(sol[0])
 
