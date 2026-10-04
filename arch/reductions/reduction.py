@@ -9,7 +9,7 @@ from kernel_gen import (
 import time
 import ctypes
 import numpy as np
-import pandas as pd
+# import pandas as pd
 import matplotlib.pyplot as plt
 
 
@@ -61,42 +61,56 @@ if __name__ == '__main__':
     engine.run_static_constructors()
 
     # we assume the signature to be (ptr, T, int32) -> T
-    benchmark_function_name = wrapped.name
+    # sembra che il problema fosse la funzione di riduzione wrapper
+    bench = func
+    benchmark_function_name = bench.name
     benchmark_function_address = engine.get_function_address(benchmark_function_name)
-    benchmark_function_signature = create_ctypes_signature(wrapped)
+    benchmark_function_signature = create_ctypes_signature(bench)
     benchmark_function = benchmark_function_signature(benchmark_function_address)
 
-    NPOINTS = 5
+    NPOINTS = 200
     NRUNS = 1
     MIN_EXPONENT = 10
-    MAX_EXPONENT = 23
+    MAX_EXPONENT = 30
     exponents = np.linspace(MIN_EXPONENT, MAX_EXPONENT, NPOINTS)
-    buffer_sizes = np.int32(np.floor(2 ** exponents))
+    buffer_sizes = np.int32(2 ** exponents)
     max_buffer_size = buffer_sizes[-1]
 
-    runtimes = np.zeros_like(buffer_sizes)
-    xs = np.random.randint(low=0, high=1000, size=max_buffer_size)
+    runtimes = np.zeros(len(exponents))
+    xs = np.random.randint(
+        low=0,
+        high=1000,
+        size=max_buffer_size,
+        dtype=np.int32
+    )
 
     for i in range(len(buffer_sizes)):
         n = buffer_sizes[i]
         buffer_slice = xs[:n]
-        print(f'run with {n} elements')
 
+        # this is supposed to compute the reference value
+        # but also to puts the buffer slice in the cache
         checksum = np.bitwise_xor.reduce(buffer_slice)
 
         start_time = time.perf_counter()
         res = benchmark_function(
             xs.ctypes.data_as(ctypes.c_void_p),
-            ctypes.c_int32(n),
-            ctypes.c_int32(NRUNS)
+            ctypes.c_int32(n)
         )
         end_time = time.perf_counter()
         assert(res == checksum)
 
-        runtimes[i] = (end_time - start_time) / NRUNS
+        runtimes[i] = end_time - start_time
 
-    runtimes = buffer_sizes
-    plt.plot(buffer_sizes, runtimes)
+    normalized_runtimes = runtimes / NRUNS
+    throughput = buffer_sizes/runtimes
+    throughput_mb_per_s = throughput / (2**20)
+
+    plt.plot(buffer_sizes, throughput_mb_per_s)
     plt.xscale('log')
+    plt.yscale('log')
+    plt.title('reduction throughput')
+    plt.xlabel('buffer size [bytes]')
+    plt.ylabel('throughtput [MB/s]')
     plt.show()
 
