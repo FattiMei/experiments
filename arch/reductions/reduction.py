@@ -1,16 +1,11 @@
-import llvmlite
 import llvmlite.ir as ir
 import llvmlite.binding as llvm
-from kernel_gen import (
-    generate_reduction_kernel,
-    wrap_kernel
-)
+from kernel_gen import generate_reduction_kernel
 
 import time
 import ctypes
+import argparse
 import numpy as np
-# import pandas as pd
-import matplotlib.pyplot as plt
 
 
 i32 = ir.IntType(32)
@@ -33,84 +28,83 @@ def create_ctypes_signature(func: ir.Function) -> "_ctypes.PyCFuncPtrType":
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        prog='reduction benchmark'
+    )
+    parser.add_argument('--npoints', type=int, help='numbers of data points', default=200)
+    parser.add_argument('--min-exponent', type=int, default=10)
+    parser.add_argument('--max-exponent', type=int, default=30)
+    parser.add_argument('--disable-vectorization', action='store_true')
+    args = parser.parse_args()
+
+
+    # llvm initialization, including the JIT compilation
     llvm.initialize_native_target()
     llvm.initialize_native_asmprinter()
-
-    dtype = i32
-    func = generate_reduction_kernel(dtype)
-    wrapped = wrap_kernel(func)
-
-    mod = func.module
-    modref = llvm.parse_assembly(str(mod))
-    modref.verify()
 
     triple = llvm.get_default_triple()
     target = llvm.Target.from_triple(triple)
     target_machine = target.create_target_machine()
 
-    # application of a standard optimization pass
-    # note that we don't really check if the benchmark code has been removed
-    pto = llvm.create_pipeline_tuning_options(speed_level=2)
+    backing_mod = llvm.parse_assembly("")
+    engine = llvm.create_mcjit_compiler(backing_mod, target_machine)
+
+
+    # generation of optimized reduction kernel, a standard optimization
+    # pipeline is applied, based on the user requirements we could also
+    # disable the vectorization
+    func = generate_reduction_kernel(i32)
+    mod = func.module
+    modref = llvm.parse_assembly(str(mod))
+    modref.verify()
+    pto = llvm.create_pipeline_tuning_options(speed_level=3)
     pass_builder = llvm.create_pass_builder(target_machine, pto)
     mpm = pass_builder.getModulePassManager()
     mpm.run(modref, pass_builder)
 
-    # JIT compilation of the module, copied from the llvmlite documentation
-    engine = llvm.create_mcjit_compiler(modref, target_machine)
+    engine.add_module(modref)
     engine.finalize_object()
     engine.run_static_constructors()
 
-    # we assume the signature to be (ptr, T, int32) -> T
-    # sembra che il problema fosse la funzione di riduzione wrapper
-    bench = func
-    benchmark_function_name = bench.name
+
+    # wrapping the jitted function, assuming the signature is (ptr, T) -> T
+    benchmark_function_name = func.name
     benchmark_function_address = engine.get_function_address(benchmark_function_name)
-    benchmark_function_signature = create_ctypes_signature(bench)
+    benchmark_function_signature = create_ctypes_signature(func)
     benchmark_function = benchmark_function_signature(benchmark_function_address)
 
-    NPOINTS = 200
-    NRUNS = 1
-    MIN_EXPONENT = 10
-    MAX_EXPONENT = 30
-    exponents = np.linspace(MIN_EXPONENT, MAX_EXPONENT, NPOINTS)
+
+    # performing the benchmarking logic. For now, only a single run is profiled
+    # for each buffer size.
+    exponents = np.linspace(args.min_exponent, args.max_exponent, args.npoints)
     buffer_sizes = np.int32(2 ** exponents)
     max_buffer_size = buffer_sizes[-1]
 
-    runtimes = np.zeros(len(exponents))
-    xs = np.random.randint(
-        low=0,
-        high=1000,
-        size=max_buffer_size,
-        dtype=np.int32
-    )
+    # the dtype of the buffer needs to be coupled with the dtype of the reduction!
+    xs = np.random.randint(0, 1000, size=max_buffer_size, dtype=np.int32)
+    runtimes = np.zeros(len(buffer_sizes))
 
-    for i in range(len(buffer_sizes)):
-        n = buffer_sizes[i]
+    for (i,n) in enumerate(buffer_sizes):
         buffer_slice = xs[:n]
-
-        # this is supposed to compute the reference value
-        # but also to puts the buffer slice in the cache
-        checksum = np.bitwise_xor.reduce(buffer_slice)
+        expected = np.bitwise_xor.reduce(buffer_slice)
 
         start_time = time.perf_counter()
-        res = benchmark_function(
+        actual = benchmark_function(
             xs.ctypes.data_as(ctypes.c_void_p),
             ctypes.c_int32(n)
         )
         end_time = time.perf_counter()
-        assert(res == checksum)
 
+        assert(expected == actual)
         runtimes[i] = end_time - start_time
 
-    normalized_runtimes = runtimes / NRUNS
-    throughput = buffer_sizes/runtimes
-    throughput_mb_per_s = throughput / (2**20)
 
-    plt.plot(buffer_sizes, throughput_mb_per_s)
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.title('reduction throughput')
-    plt.xlabel('buffer size [bytes]')
-    plt.ylabel('throughtput [MB/s]')
-    plt.show()
+    # a final csv is printed to stdout. I have chosen to separate data generation
+    # from data analysis as the generation phase could be long and I want to collect
+    # data across many machines
+    #
+    # I should also write the generation parameters like the vectorization flag
+    print('buffer_size_bytes,runtime_s')
+    for (s,t) in zip(buffer_sizes, runtimes):
+        print(f'{s},{t}')
 

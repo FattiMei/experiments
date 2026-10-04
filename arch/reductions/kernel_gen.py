@@ -4,7 +4,7 @@ import llvmlite.ir as ir
 i32 = ir.IntType(32)
 
 
-def generate_empty_kernel() -> ir.Module:
+def generate_empty_kernel() -> tuple[ir.Module, ir.Function]:
     module = ir.Module()
 
     func_type = ir.FunctionType(
@@ -22,7 +22,7 @@ def generate_empty_kernel() -> ir.Module:
     builder = ir.builder.IRBuilder(entry_block)
     builder.ret_void()
 
-    return module
+    return module, func
 
 
 def _generate_reduction_kernel_tail_recursive(dtype) -> ir.Module:
