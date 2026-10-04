@@ -35,6 +35,7 @@ if __name__ == '__main__':
     parser.add_argument('--min-exponent', type=int, default=10)
     parser.add_argument('--max-exponent', type=int, default=30)
     parser.add_argument('--disable-vectorization', action='store_true')
+    parser.add_argument('--shuffle-iterations', action='store_true')
     args = parser.parse_args()
 
 
@@ -83,6 +84,9 @@ if __name__ == '__main__':
     # the dtype of the buffer needs to be coupled with the dtype of the reduction!
     xs = np.random.randint(0, 1000, size=max_buffer_size, dtype=np.int32)
     runtimes = np.zeros(len(buffer_sizes))
+
+    if args.shuffle_iterations:
+        np.random.shuffle(runtimes)
 
     for (i,n) in enumerate(buffer_sizes):
         buffer_slice = xs[:n]
