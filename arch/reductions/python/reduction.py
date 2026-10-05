@@ -102,35 +102,17 @@ if __name__ == '__main__':
     buffer_size_bytes = buffer_size_bytes + padding
     assert(np.all(np.mod(buffer_size_bytes, sizeof_numpy_dtype) == 0))
 
-    buffer_size_elements = np.int32(buffer_size_bytes / sizeof_numpy_dtype)
-    max_buffer_size_elements = buffer_size_elements[-1]
-
     # the dtype of the buffer needs to be coupled with the dtype of the reduction!
+    max_buffer_size_elements = buffer_size_bytes[-1] // sizeof_numpy_dtype
     xs = np.random.randint(
         0, # we should put here the min and max number representable
         1000,
         size=max_buffer_size_elements,
         dtype=numpy_dtype
     )
-    runtimes_s = np.zeros(buffer_size_bytes.shape)
 
     if args.shuffle_iterations:
-        np.random.shuffle(runtimes_s)
-
-    for (i,n) in enumerate(buffer_size_elements):
-        buffer_slice = xs[:n]
-        expected = np.bitwise_xor.reduce(buffer_slice)
-
-        start_time = time.perf_counter()
-        actual = benchmark_function(
-            xs.ctypes.data_as(ctypes.c_void_p),
-            ctypes.c_int32(n)
-        )
-        end_time = time.perf_counter()
-
-        assert(expected == actual)
-        runtimes_s[i] = end_time - start_time
-
+        np.random.shuffle(buffer_size_bytes)
 
     # a final csv is printed to stdout. I have chosen to separate data generation
     # from data analysis as the generation phase could be long and I want to collect
@@ -142,10 +124,22 @@ if __name__ == '__main__':
         f'# min-exponent = {args.min_exponent}',
         f'# max-exponent = {args.max_exponent}',
         f'# disable-vectorization = {args.disable_vectorization}',
-        f'# shuffle-iterations = {args.shuffle_iterations}'
+        f'# shuffle-iterations = {args.shuffle_iterations}',
+        'buffer_size_bytes,runtime_s'
     ))
     print(header)
-    print('buffer_size_bytes,runtime_s')
-    for (s,t) in zip(buffer_size_bytes, runtimes_s):
-        print(f'{s},{t}')
+    for bufsize in buffer_size_bytes:
+        # to be fully compatible with the C++ implementation
+        # we don't perform a pre scan of the input data
+        nelems = bufsize // sizeof_numpy_dtype
+
+        start_time = time.perf_counter()
+        actual = benchmark_function(
+            xs.ctypes.data_as(ctypes.c_void_p),
+            ctypes.c_int32(nelems)
+        )
+        end_time = time.perf_counter()
+        runtime_s = end_time - start_time
+
+        print(f'{bufsize},{runtime_s}')
 
