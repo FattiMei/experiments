@@ -94,6 +94,14 @@ if __name__ == '__main__':
     exponents = np.linspace(args.min_exponent, args.max_exponent, args.npoints)
     buffer_size_bytes = LLVM_TYPE_TO_NUMPY_DTYPE[i32](2 ** exponents)
 
+    # the buffer must contain an integer amount of elements! We need to pad it
+    padding = np.mod(
+        sizeof_numpy_dtype - np.mod(buffer_size_bytes, sizeof_numpy_dtype),
+        sizeof_numpy_dtype
+    )
+    buffer_size_bytes = buffer_size_bytes + padding
+    assert(np.all(np.mod(buffer_size_bytes, sizeof_numpy_dtype) == 0))
+
     buffer_size_elements = np.int32(buffer_size_bytes / sizeof_numpy_dtype)
     max_buffer_size_elements = buffer_size_elements[-1]
 
@@ -129,14 +137,14 @@ if __name__ == '__main__':
     # data across many machines
     #
     # I should also write the generation parameters like the vectorization flag
-    header = ' '.join((
-        f'npoints = {args.npoints}',
-        f'min-exponent = {args.min_exponent}',
-        f'max-exponent = {args.max_exponent}',
-        f'disable-vectorization = {args.disable_vectorization}',
-        f'shuffle-iterations = {args.shuffle_iterations}'
+    header = '\n'.join((
+        f'# npoints = {args.npoints}',
+        f'# min-exponent = {args.min_exponent}',
+        f'# max-exponent = {args.max_exponent}',
+        f'# disable-vectorization = {args.disable_vectorization}',
+        f'# shuffle-iterations = {args.shuffle_iterations}'
     ))
-    print(f'# {header}')
+    print(header)
     print('buffer_size_bytes,runtime_s')
     for (s,t) in zip(buffer_size_bytes, runtimes_s):
         print(f'{s},{t}')
