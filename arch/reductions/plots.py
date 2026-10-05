@@ -12,7 +12,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     input_filename = args.input_csv
-    df = pd.read_csv(input_filename)
+    df = pd.read_csv(input_filename, comment='#')
 
     buffer_size_bytes = df['buffer_size_bytes']
     runtime_s = df['runtime_s']

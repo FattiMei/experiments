@@ -9,9 +9,14 @@ import numpy as np
 
 
 i32 = ir.IntType(32)
+
 LLVM_TYPE_TO_CTYPES = {
     i32: ctypes.c_int32,
     ir.PointerType(): ctypes.c_void_p
+}
+
+LLVM_TYPE_TO_NUMPY_DTYPE = {
+    i32: np.int32
 }
 
 
@@ -54,11 +59,17 @@ if __name__ == '__main__':
     # generation of optimized reduction kernel, a standard optimization
     # pipeline is applied, based on the user requirements we could also
     # disable the vectorization
-    func = generate_reduction_kernel(i32)
+    DTYPE = i32
+    func = generate_reduction_kernel(DTYPE)
     mod = func.module
     modref = llvm.parse_assembly(str(mod))
     modref.verify()
+
     pto = llvm.create_pipeline_tuning_options(speed_level=3)
+    if args.disable_vectorization:
+        pto.loop_vectorization = False
+        pto.slp_vectorization = False
+
     pass_builder = llvm.create_pass_builder(target_machine, pto)
     mpm = pass_builder.getModulePassManager()
     mpm.run(modref, pass_builder)
@@ -77,18 +88,28 @@ if __name__ == '__main__':
 
     # performing the benchmarking logic. For now, only a single run is profiled
     # for each buffer size.
+    numpy_dtype = LLVM_TYPE_TO_NUMPY_DTYPE[DTYPE]
+    sizeof_numpy_dtype = numpy_dtype().nbytes
+
     exponents = np.linspace(args.min_exponent, args.max_exponent, args.npoints)
-    buffer_sizes = np.int32(2 ** exponents)
-    max_buffer_size = buffer_sizes[-1]
+    buffer_size_bytes = LLVM_TYPE_TO_NUMPY_DTYPE[i32](2 ** exponents)
+
+    buffer_size_elements = np.int32(buffer_size_bytes / sizeof_numpy_dtype)
+    max_buffer_size_elements = buffer_size_elements[-1]
 
     # the dtype of the buffer needs to be coupled with the dtype of the reduction!
-    xs = np.random.randint(0, 1000, size=max_buffer_size, dtype=np.int32)
-    runtimes = np.zeros(len(buffer_sizes))
+    xs = np.random.randint(
+        0, # we should put here the min and max number representable
+        1000,
+        size=max_buffer_size_elements,
+        dtype=numpy_dtype
+    )
+    runtimes_s = np.zeros(buffer_size_bytes.shape)
 
     if args.shuffle_iterations:
-        np.random.shuffle(runtimes)
+        np.random.shuffle(runtimes_s)
 
-    for (i,n) in enumerate(buffer_sizes):
+    for (i,n) in enumerate(buffer_size_elements):
         buffer_slice = xs[:n]
         expected = np.bitwise_xor.reduce(buffer_slice)
 
@@ -100,7 +121,7 @@ if __name__ == '__main__':
         end_time = time.perf_counter()
 
         assert(expected == actual)
-        runtimes[i] = end_time - start_time
+        runtimes_s[i] = end_time - start_time
 
 
     # a final csv is printed to stdout. I have chosen to separate data generation
@@ -108,7 +129,15 @@ if __name__ == '__main__':
     # data across many machines
     #
     # I should also write the generation parameters like the vectorization flag
+    header = ' '.join((
+        f'npoints = {args.npoints}',
+        f'min-exponent = {args.min_exponent}',
+        f'max-exponent = {args.max_exponent}',
+        f'disable-vectorization = {args.disable_vectorization}',
+        f'shuffle-iterations = {args.shuffle_iterations}'
+    ))
+    print(f'# {header}')
     print('buffer_size_bytes,runtime_s')
-    for (s,t) in zip(buffer_sizes, runtimes):
+    for (s,t) in zip(buffer_size_bytes, runtimes_s):
         print(f'{s},{t}')
 
