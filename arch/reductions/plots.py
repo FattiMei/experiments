@@ -2,13 +2,15 @@
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import argparse
+import matplotlib.pyplot as plt
+from pathlib import Path
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('input_csv', type=str)
+    parser.add_argument('--save-img', action='store_true')
     args = parser.parse_args()
 
     input_filename = args.input_csv
@@ -20,15 +22,26 @@ if __name__ == '__main__':
     throughput = buffer_size_bytes / runtime_s
     throughput_mb_s = throughput / (2**20)
 
-    plt.title(f'Reduction throughput ({input_filename})')
+    fig, ax = plt.subplots()
+
+    ax.set_title(f'Reduction throughput ({input_filename})')
     plt.scatter(
         buffer_size_bytes,
         throughput_mb_s,
         s=5
     )
-    plt.xscale('log', base=2)
-    plt.xlabel('buffer size [bytes]')
-    plt.ylabel('throughput [MB/s]')
-    plt.grid()
-    plt.show()
+    ax.set_xscale('log', base=2)
+    ax.set_xlabel('buffer size [bytes]')
+    ax.set_ylabel('throughput [MB/s]')
+    ax.grid()
+
+    if args.save_img:
+        FORMAT = 'png'
+        stem = Path(input_filename).stem
+        output_filename = f'{stem}.{FORMAT}'
+        fig.savefig(output_filename, format=FORMAT)
+
+        print(f'Saved plot to {output_filename}')
+    else:
+        plt.show()
 
