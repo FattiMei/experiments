@@ -3,6 +3,11 @@ STATIC_LIB = libfoo.a
 HIDDEN_DEPENDENCY = -lblas
 TARGET = main
 
+
+# this should be target dependent
+LIBDEP_PLUGIN = /usr/lib/x86_64-linux-gnu/bfd-plugins/libdep.so
+
+
 all: $(TARGET)
 
 foo.o: foo.c
@@ -16,8 +21,9 @@ $(STATIC_LIB): foo.o
 
 $(TARGET): main.o $(STATIC_LIB)
 	# here the linker should automatically find the dependency of foo
-	$(CC) -o $@ $^ -Wl,-plugin,/usr/lib/arm-linux-gnueabihf/bfd-plugins/libdep.so
+	$(CC) -o $@ $^ -Wl,-plugin,$(LIBDEP_PLUGIN)
 
 .PHONY: clean
 clean:
 	rm -f foo.o main.o $(STATIC_LIB) $(TARGET)
+

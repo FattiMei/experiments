@@ -1,5 +1,5 @@
 import numpy as np
-# from ols import linear_regression
+from ols import linear_regression
 
 
 BETA = np.array([0.1, 2.0])

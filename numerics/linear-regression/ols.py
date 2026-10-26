@@ -8,7 +8,7 @@ def linear_regression(x: np.array, y: np.array) -> tuple[np.array, np.array]:
         x.reshape(-1,1),
     ), axis=1)
 
-    beta = np.linalg.lstsq(X, y)[0]
+    beta = np.linalg.lstsq(X, y, rcond=None)[0]
     residuals = y - X @ beta
 
     return beta, residuals

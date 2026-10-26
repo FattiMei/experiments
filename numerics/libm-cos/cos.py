@@ -11,17 +11,17 @@ PRIME5 = np.uint32(0x165667B1)
 def rol(x, p):
     """
     This implementation has been designed to work with
-    both numpy scalars and array inputs
+    both numpy scalars and array inputs.
+
+    To support older versions of numpy, we use `right_shift`
+    instead of `bitwise_right_shift`.
+
+    The two implementations are equal for unsigned dtypes
     """
-    return np.bitwise_left_shift(x, p) | np.bitwise_right_shift(x, 32-p)
+    return np.left_shift(x, p) | np.right_shift(x, 32-p)
 
 
 def xxhash(x: np.array, seed: np.uint32 = np.uint32(0)) -> np.uint32:
-    # this is just wrapper code for supporting strings
-    if isinstance(x, str):
-        buffer = bytes(x, encoding='utf-8')
-        x = np.frombuffer(buffer, dtype=np.int8)
-
     x = x.view(np.uint8).reshape(-1)
     n = x.shape[0]
     h32 = np.uint32(n)
@@ -47,6 +47,7 @@ def xxhash(x: np.array, seed: np.uint32 = np.uint32(0)) -> np.uint32:
             seed - PRIME1
         ], dtype=np.uint32)
 
+        # this is the hot loop
         for line in blocks_of_16:
             v = v + line * PRIME2
             v = rol(v, 13)
@@ -97,3 +98,4 @@ if __name__ == '__main__':
     for i in range(CHUNK_NUMBER):
         hash = compute_chunk_hash(i, CHUNK_SIZE)
         print(f'{i},{hex(hash)}')
+
